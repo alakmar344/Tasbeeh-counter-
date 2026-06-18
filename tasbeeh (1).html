@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Tasbeeh Tracker</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Inter:wght@300;400;500;600&display=swap');
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+
+:root{
+  --bg:#0c1410;
+  --panel:#111a15;
+  --border:#1e3025;
+  --gold:#c8a84b;
+  --gold2:#e6c97a;
+  --green:#2a6b43;
+  --text:#ddd8c4;
+  --sub:#5a7060;
+  --muted:#3a4e3e;
+  --white:#f5f0e8;
+  --sidebar:280px;
+}
+
+html,body{height:100%;overflow:hidden;}
+
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Inter',sans-serif;
+  display:flex;
+  height:100dvh;
+}
+
+/* ── SIDEBAR ── */
+aside{
+  width:var(--sidebar);
+  min-width:var(--sidebar);
+  background:var(--panel);
+  border-right:1px solid var(--border);
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  transition:transform 0.3s ease;
+}
+
+.sidebar-header{
+  padding:22px 20px 16px;
+  border-bottom:1px solid var(--border);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+.sidebar-title{
+  font-family:'Amiri',serif;
+  font-size:1.1rem;
+  color:var(--gold);
+  letter-spacing:0.03em;
+}
+
+.sidebar-body{
+  overflow-y:auto;
+  flex:1;
+  padding:0 0 20px;
+}
+
+.sidebar-body::-webkit-scrollbar{width:3px;}
+.sidebar-body::-webkit-scrollbar-track{background:transparent;}
+.sidebar-body::-webkit-scrollbar-thumb{background:var(--border);}
+
+/* Report sections */
+.report-section{
+  padding:16px 20px 12px;
+  border-bottom:1px solid var(--border);
+}
+
+.report-label{
+  font-size:0.6rem;
+  font-weight:600;
+  letter-spacing:0.18em;
+  text-transform:uppercase;
+  color:var(--sub);
+  margin-bottom:10px;
+}
+
+.report-big{
+  font-family:'Amiri',serif;
+  font-size:2.2rem;
+  color:var(--white);
+  line-height:1;
+}
+
+.report-sub{
+  font-size:0.7rem;
+  color:var(--sub);
+  margin-top:3px;
+}
+
+/* Weekly bar chart */
+.week-bars{
+  display:flex;
+  align-items:flex-end;
+  gap:5px;
+  height:52px;
+  margin-top:10px;
+}
+
+.bar-col{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:3px;
+  height:100%;
+  justify-content:flex-end;
+}
+
+.bar{
+  width:100%;
+  background:var(--border);
+  border-radius:3px 3px 0 0;
+  min-height:3px;
+  transition:height 0.4s ease;
+  position:relative;
+}
+
+.bar.today-bar{background:var(--gold);}
+.bar.has-data{background:var(--green);}
+
+.bar-day{
+  font-size:0.55rem;
+  color:var(--muted);
+  letter-spacing:0.05em;
+  text-transform:uppercase;
+}
+
+.bar-day.today-label{color:var(--gold);}
+
+/* Monthly heatmap */
+.heatmap{
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+  gap:3px;
+  margin-top:10px;
+}
+
+.hm-cell{
+  aspect-ratio:1;
+  border-radius:2px;
+  background:var(--border);
+}
+
+.hm-cell.lv1{background:#1e4a2e;}
+.hm-cell.lv2{background:#2a6b43;}
+.hm-cell.lv3{background:#3a8e5a;}
+.hm-cell.lv4{background:var(--gold);}
+
+/* Yearly stat row */
+.stat-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:7px 0;
+  border-bottom:1px solid var(--border);
+}
+.stat-row:last-child{border-bottom:none;}
+
+.stat-key{font-size:0.72rem;color:var(--sub);}
+.stat-val{font-size:0.88rem;color:var(--white);font-weight:500;}
+
+/* ── MAIN ── */
+main{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:28px;
+  position:relative;
+  overflow:hidden;
+}
+
+.today-date{
+  font-size:0.68rem;
+  letter-spacing:0.16em;
+  text-transform:uppercase;
+  color:var(--sub);
+}
+
+/* Tap button */
+.tap-btn{
+  width:min(60vw,240px);
+  aspect-ratio:1;
+  border-radius:50%;
+  border:1.5px solid var(--border);
+  background:var(--panel);
+  cursor:pointer;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  outline:none;
+  transition:transform 0.08s,background 0.1s,border-color 0.1s;
+  box-shadow:0 0 0 10px rgba(30,48,37,0.25),inset 0 2px 12px rgba(0,0,0,0.5);
+  -webkit-tap-highlight-color:transparent;
+  user-select:none;
+}
+
+.tap-btn:active,.tap-btn.pressed{
+  transform:scale(0.94);
+  background:#182219;
+  border-color:var(--gold);
+}
+
+.count-num{
+  font-family:'Amiri',serif;
+  font-size:clamp(3.5rem,14vw,5.5rem);
+  color:var(--white);
+  line-height:1;
+}
+
+.tap-hint{
+  font-size:0.6rem;
+  letter-spacing:0.2em;
+  text-transform:uppercase;
+  color:var(--muted);
+  margin-top:6px;
+}
+
+/* Controls under tap */
+.bottom-row{
+  display:flex;
+  gap:12px;
+  align-items:center;
+}
+
+.ctrl-btn{
+  padding:8px 18px;
+  border-radius:20px;
+  border:1px solid var(--border);
+  background:transparent;
+  color:var(--sub);
+  font-size:0.72rem;
+  font-family:'Inter',sans-serif;
+  cursor:pointer;
+  letter-spacing:0.06em;
+  transition:background 0.12s,color 0.12s,border-color 0.12s;
+}
+
+.ctrl-btn:hover{background:rgba(255,255,255,0.04);color:var(--text);}
+.ctrl-btn.danger:hover{border-color:#8b2e2e;color:#c97a7a;}
+
+/* Save toast */
+.toast{
+  position:fixed;
+  bottom:32px;
+  left:50%;
+  transform:translateX(-50%) translateY(20px);
+  background:var(--green);
+  color:#d4f0de;
+  font-size:0.72rem;
+  letter-spacing:0.1em;
+  padding:8px 18px;
+  border-radius:20px;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity 0.2s,transform 0.2s;
+}
+
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* Mobile sidebar toggle */
+.menu-btn{
+  display:none;
+  position:fixed;
+  top:14px;right:14px;
+  background:var(--panel);
+  border:1px solid var(--border);
+  color:var(--sub);
+  border-radius:8px;
+  padding:6px 10px;
+  font-size:1rem;
+  cursor:pointer;
+  z-index:100;
+}
+
+@media(max-width:640px){
+  aside{
+    position:fixed;
+    top:0;bottom:0;left:0;
+    z-index:50;
+    transform:translateX(-100%);
+  }
+  aside.open{transform:translateX(0);}
+  .menu-btn{display:block;}
+  main{width:100%;}
+}
+</style>
+</head>
+<body>
+
+<button class="menu-btn" id="menuBtn">☰</button>
+
+<!-- SIDEBAR -->
+<aside id="sidebar">
+  <div class="sidebar-header">
+    <span class="sidebar-title">تسبيح — Reports</span>
+  </div>
+  <div class="sidebar-body">
+
+    <!-- TODAY -->
+    <div class="report-section">
+      <div class="report-label">Today</div>
+      <div class="report-big" id="rToday">0</div>
+      <div class="report-sub" id="rTodayDate">—</div>
+    </div>
+
+    <!-- THIS WEEK -->
+    <div class="report-section">
+      <div class="report-label">This Week</div>
+      <div class="report-big" id="rWeek">0</div>
+      <div class="report-sub" id="rWeekRange">Mon – Sun</div>
+      <div class="week-bars" id="weekBars"></div>
+    </div>
+
+    <!-- THIS MONTH -->
+    <div class="report-section">
+      <div class="report-label">This Month</div>
+      <div class="report-big" id="rMonth">0</div>
+      <div class="report-sub" id="rMonthName">—</div>
+      <div class="heatmap" id="heatmap"></div>
+    </div>
+
+    <!-- THIS YEAR -->
+    <div class="report-section">
+      <div class="report-label">This Year</div>
+      <div class="report-big" id="rYear">0</div>
+      <div class="report-sub" id="rYearName">—</div>
+      <div style="margin-top:12px;" id="yearStats"></div>
+    </div>
+
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main>
+  <div class="today-date" id="mainDate">—</div>
+
+  <div class="tap-btn" id="tapBtn" tabindex="0" role="button" aria-label="Tap to count">
+    <div class="count-num" id="countDisplay">0</div>
+    <div class="tap-hint">tap</div>
+  </div>
+
+  <div class="bottom-row">
+    <button class="ctrl-btn" id="saveBtn">Save today</button>
+    <button class="ctrl-btn danger" id="resetBtn">Reset</button>
+  </div>
+</main>
+
+<div class="toast" id="toast">Saved ✓</div>
+
+<script>
+// ── Storage helpers ──────────────────────────────
+const STORE_KEY = 'tasbeeh_v2';
+
+function loadData(){
+  try{ return JSON.parse(localStorage.getItem(STORE_KEY)) || {}; }
+  catch{ return {}; }
+}
+
+function saveData(data){
+  localStorage.setItem(STORE_KEY, JSON.stringify(data));
+}
+
+// ── Date helpers ─────────────────────────────────
+function todayKey(){
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function parseKey(k){ // returns {y,m,d}
+  const [y,m,d] = k.split('-').map(Number);
+  return {y,m,d};
+}
+
+function weekStart(date){ // Monday
+  const d = new Date(date);
+  const day = d.getDay(); // 0=Sun
+  const diff = (day===0)?-6:(1-day);
+  d.setDate(d.getDate()+diff);
+  return d;
+}
+
+function fmtDate(d){
+  return d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+}
+
+const DAY_NAMES = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+// ── State ────────────────────────────────────────
+let data    = loadData();
+let today   = todayKey();
+let count   = data[today] || 0;
+
+// ── DOM refs ─────────────────────────────────────
+const countDisplay = document.getElementById('countDisplay');
+const mainDate     = document.getElementById('mainDate');
+const tapBtn       = document.getElementById('tapBtn');
+const saveBtn      = document.getElementById('saveBtn');
+const resetBtn     = document.getElementById('resetBtn');
+const toast        = document.getElementById('toast');
+const menuBtn      = document.getElementById('menuBtn');
+const sidebar      = document.getElementById('sidebar');
+
+// ── Tap ──────────────────────────────────────────
+function tap(){
+  count++;
+  countDisplay.textContent = count;
+  // auto-save every 10
+  if(count % 10 === 0) persist(false);
+  if(navigator.vibrate) navigator.vibrate(12);
+}
+
+tapBtn.addEventListener('click', tap);
+tapBtn.addEventListener('keydown', e=>{ if(e.key===' '||e.key==='Enter') tap(); });
+tapBtn.addEventListener('pointerdown', ()=>tapBtn.classList.add('pressed'));
+tapBtn.addEventListener('pointerup',   ()=>tapBtn.classList.remove('pressed'));
+tapBtn.addEventListener('pointerleave',()=>tapBtn.classList.remove('pressed'));
+
+// ── Save ─────────────────────────────────────────
+function persist(showToast=true){
+  data[today] = count;
+  saveData(data);
+  renderReports();
+  if(showToast) flashToast();
+}
+
+function flashToast(){
+  toast.classList.add('show');
+  setTimeout(()=>toast.classList.remove('show'),1600);
+}
+
+saveBtn.addEventListener('click', ()=>persist(true));
+resetBtn.addEventListener('click', ()=>{
+  count = 0;
+  countDisplay.textContent = 0;
+  persist(false);
+});
+
+// ── Mobile sidebar ───────────────────────────────
+menuBtn.addEventListener('click', ()=>sidebar.classList.toggle('open'));
+document.addEventListener('click', e=>{
+  if(sidebar.classList.contains('open') && !sidebar.contains(e.target) && e.target!==menuBtn)
+    sidebar.classList.remove('open');
+});
+
+// ── Reports ──────────────────────────────────────
+function renderReports(){
+  const now = new Date();
+  const tk  = todayKey();
+
+  // Merge unsaved count
+  const d = {...data, [tk]: count};
+
+  // ── TODAY ──
+  document.getElementById('rToday').textContent = (d[tk]||0).toLocaleString();
+  document.getElementById('rTodayDate').textContent = fmtDate(now);
+  mainDate.textContent = fmtDate(now).toUpperCase();
+
+  // ── THIS WEEK ──
+  const ws  = weekStart(now);
+  let weekTotal = 0;
+  const weekDays = [];
+  for(let i=0;i<7;i++){
+    const dd = new Date(ws);
+    dd.setDate(ws.getDate()+i);
+    const k = `${dd.getFullYear()}-${String(dd.getMonth()+1).padStart(2,'0')}-${String(dd.getDate()).padStart(2,'0')}`;
+    const v = d[k]||0;
+    weekTotal += v;
+    weekDays.push({label:DAY_NAMES[i], val:v, isToday:k===tk});
+  }
+  document.getElementById('rWeek').textContent = weekTotal.toLocaleString();
+  const weEnd = new Date(ws); weEnd.setDate(ws.getDate()+6);
+  document.getElementById('rWeekRange').textContent =
+    ws.toLocaleDateString('en-GB',{day:'numeric',month:'short'})+' – '+
+    weEnd.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+
+  // Week bars
+  const barsEl = document.getElementById('weekBars');
+  barsEl.innerHTML='';
+  const maxW = Math.max(...weekDays.map(x=>x.val),1);
+  weekDays.forEach(({label,val,isToday})=>{
+    const pct = Math.max(val/maxW*100,val>0?8:4);
+    const col = document.createElement('div');
+    col.className='bar-col';
+    col.innerHTML=`
+      <div class="bar${isToday?' today-bar':val>0?' has-data':''}" style="height:${pct}%"></div>
+      <div class="bar-day${isToday?' today-label':''}">${label}</div>`;
+    barsEl.appendChild(col);
+  });
+
+  // ── THIS MONTH ──
+  const y=now.getFullYear(), m=now.getMonth()+1;
+  const daysInMonth = new Date(y,m,0).getDate();
+  let monthTotal=0;
+  const monthVals=[];
+  for(let dd=1;dd<=daysInMonth;dd++){
+    const k=`${y}-${String(m).padStart(2,'0')}-${String(dd).padStart(2,'0')}`;
+    const v=d[k]||0;
+    monthTotal+=v;
+    monthVals.push(v);
+  }
+  document.getElementById('rMonth').textContent = monthTotal.toLocaleString();
+  document.getElementById('rMonthName').textContent = MONTH_NAMES[m-1]+' '+y;
+
+  // Heatmap
+  const hmEl = document.getElementById('heatmap');
+  hmEl.innerHTML='';
+  const maxM = Math.max(...monthVals,1);
+  // pad to start on correct weekday
+  const firstDay = new Date(y,m-1,1).getDay(); // 0=Sun
+  const padStart = firstDay===0?6:firstDay-1;
+  for(let p=0;p<padStart;p++){
+    const c=document.createElement('div');
+    c.className='hm-cell';
+    hmEl.appendChild(c);
+  }
+  monthVals.forEach((v,i)=>{
+    const c=document.createElement('div');
+    const lv = v===0?'':v<maxM*0.25?'lv1':v<maxM*0.5?'lv2':v<maxM*0.75?'lv3':'lv4';
+    c.className='hm-cell'+(lv?' '+lv:'');
+    c.title=`${String(i+1).padStart(2,'0')} ${MONTH_NAMES[m-1]}: ${v.toLocaleString()}`;
+    hmEl.appendChild(c);
+  });
+
+  // ── THIS YEAR ──
+  let yearTotal=0;
+  let bestDay=0, bestDayKey='', streak=0, curStreak=0;
+  const allKeys = Object.keys(d).filter(k=>k.startsWith(y+'-')).sort();
+  allKeys.forEach(k=>{
+    const v=d[k]||0;
+    yearTotal+=v;
+    if(v>bestDay){bestDay=v;bestDayKey=k;}
+    if(v>0){curStreak++;streak=Math.max(streak,curStreak);}
+    else{curStreak=0;}
+  });
+  // active days
+  const activeDays = allKeys.filter(k=>( d[k]||0)>0).length;
+
+  document.getElementById('rYear').textContent = yearTotal.toLocaleString();
+  document.getElementById('rYearName').textContent = y;
+
+  const yearStatsEl = document.getElementById('yearStats');
+  const avg = activeDays>0?Math.round(yearTotal/activeDays):0;
+  let bdLabel='—';
+  if(bestDayKey){
+    const {y:by,m:bm,d:bd}=parseKey(bestDayKey);
+    bdLabel=`${bd} ${MONTH_NAMES[bm-1]} (${bestDay.toLocaleString()})`;
+  }
+  yearStatsEl.innerHTML=`
+    <div class="stat-row"><span class="stat-key">Active days</span><span class="stat-val">${activeDays}</span></div>
+    <div class="stat-row"><span class="stat-key">Daily avg</span><span class="stat-val">${avg.toLocaleString()}</span></div>
+    <div class="stat-row"><span class="stat-key">Best day</span><span class="stat-val">${bdLabel}</span></div>
+    <div class="stat-row"><span class="stat-key">Best streak</span><span class="stat-val">${streak} day${streak!==1?'s':''}</span></div>
+  `;
+}
+
+// ── Init ─────────────────────────────────────────
+countDisplay.textContent = count;
+renderReports();
+
+// Auto-save on page hide
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='hidden') persist(false);
+});
+
+// Midnight rollover
+function checkDay(){
+  const newToday = todayKey();
+  if(newToday !== today){
+    persist(false);
+    today = newToday;
+    count = data[today]||0;
+    countDisplay.textContent = count;
+    renderReports();
+  }
+}
+setInterval(checkDay, 30000);
+</script>
+</body>
+</html>
